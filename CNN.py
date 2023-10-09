@@ -100,7 +100,14 @@ print('Finished Training')
 PATH = './last-best-model.pth'
 
 loaded_model = ConvNet()
-loaded_model.load_state_dict(torch.load(PATH)) # it takes the loaded dictionary, not the path file itself
+
+try:
+    loaded_model.load_state_dict(torch.load(PATH))
+except:
+    torch.save(model.state_dict(), PATH)
+    loaded_model.load_state_dict(torch.load(PATH))
+
+ # it takes the loaded dictionary, not the path file itself
 loaded_model.to(device)
 loaded_model.eval()
 
