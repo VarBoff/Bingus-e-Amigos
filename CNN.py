@@ -7,21 +7,22 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # Device configuration
-#device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-device = torch.device('cuda')
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # Hyper-parameters 
-num_epochs = 3
+num_epochs = 100
 batch_size = 2
 learning_rate = 0.00001
+learning_threshold = 0.1
 
 transform = v2.Compose( 
     [v2.ToImage(),
-     v2.CenterCrop(4000),
+     v2.CenterCrop(5000),
      v2.ToDtype(torch.uint8, scale=True),
-     v2.Resize((512,512)),
+     v2.Resize((512,512), antialias=True),
      v2.ToDtype(torch.float32, scale=True),
-     v2.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+     v2.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+     ])
 
 train_dataset = torchvision.datasets.ImageFolder(root='./data/train', transform=transform)
 test_dataset = torchvision.datasets.ImageFolder(root='./data/test', transform=transform)
@@ -31,17 +32,17 @@ test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, s
 
 classes = ('adequate', 'floded', 'no-data')
 
-def imshow(imgs, labels):
+def imshow(imgs):
     imgs = imgs / 2 + 0.5 # unnormalize
     npimgs = imgs.numpy()
     plt.imshow(np.transpose(npimgs, (1, 2, 0)))
-    plt.title = labels
     plt.show()
 
 # one batch of random training images
 dataiter = iter(train_loader)
+# print(dataiter.__next__())
 images, labels = dataiter.__next__()
-imshow(torchvision.utils.make_grid(images[0:25], nrow=5), labels)
+#imshow(torchvision.utils.make_grid(images[0:2], nrow=2))
 
 class ConvNet(nn.Module):
     def __init__(self):
@@ -96,6 +97,9 @@ for epoch in range(num_epochs):
 
     print(f'[{epoch + 1}] loss: {running_loss / n_total_steps:.3f}')
 
+    if running_loss / n_total_steps <= learning_threshold:
+        break
+
 print('Finished Training')
 PATH = './last-best-model.pth'
 
@@ -107,7 +111,6 @@ except:
     torch.save(model.state_dict(), PATH)
     loaded_model.load_state_dict(torch.load(PATH))
 
- # it takes the loaded dictionary, not the path file itself
 loaded_model.to(device)
 loaded_model.eval()
 
